@@ -80,20 +80,24 @@ def runAlice(quantumQueue: queue.Queue,
         # Increment the counter.
         nTries += 1
 
-    print( hex(int("".join([str(int(bit)) for bit in key]) ,2 ))[2:] )
-    print(Counter(key))
-    print(nTries)
+    hexKey = hex(int("".join([str(int(bit)) for bit in key]) ,2 ))[2:] 
+    print("The secret key that both parties now have is:\n{}".format(hexKey) )
 
     # Close the quantum queue down with poison pill.
-    quantumQueue.put(None)
+    quantumQueue.put("COMPLETE")
 
     # Write the secret key to disk.
+    f = open("SecretKey.txt", "w")
+    f.write(hexKey)
 
 
 def runBob(quantumQueue: queue.Queue, 
            conventionalQueue: queue.Queue):
     ''' This controls Bob's behaviour for BB48. It will terminate
         when a full key has been received.'''
+
+    # Create a holder for Bobs secret key.
+    key = []
 
     # Initialse the quantum computer with one qubit.
     quantDevice = qs.QuantumComputer(1)
@@ -106,11 +110,15 @@ def runBob(quantumQueue: queue.Queue,
 
         # Choose the basis to measure qubit in randomly.
         basis = basisQubit.randGen()
-        
+
         # Wait for a qubit on the quantum queue. NB this has been passed by 
         # reference as closer to real world (so must get sequencing right).
         qubit = quantumQueue.get()
-        if qubit == None:
+
+        # Check if we have a complete key.
+        if qubit == "COMPLETE":
+
+            # Now return from thread as finished.
             return
 
         # Measure this on our basis. If the basis is 1 then use the X axis 
@@ -162,12 +170,17 @@ def keyExchange():
 
 
 def main():
-
-    # Undertake the key exchange.
-    keyExchange()
+    ''' Simple program that creates a thread for Bob and Alice to illustrate the BB84
+    key exchange algorithm.'''
     
-    # Now send a
+    # Undertake the key exchange. This also writes out the secret key to a text
+    # file for illustration purposes. That key would normally be held secretly 
+    # by Bob and Alice. The algorithm ensures that they can build this key separately
+    # by just exchanging basis of which the qubits were prepared and measured.
+    keyExchange()
 
 
-main()
+if __name__ == "__main__":
+    # Run the example.
+    main()
 
